@@ -1,1 +1,1 @@
-print("Hola mundo")
+print("Hola mundo,este es el repositorio para la materia de aprendizaje automático.")
