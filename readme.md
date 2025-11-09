@@ -12,3 +12,4 @@ Este es el repositorio de la materia de Aprendizaje automático de la Maestria d
 - [Tarea 2](/Tarea2/Tarea_2.ipynb)
 - [Tarea 3](/Tarea3/Tarea_3.ipynb)
 - [Tarea 4](/Tarea4/Tarea_4.ipynb)
+- [Tarea 5](/Tarea5/Tarea_5.ipynb)
