@@ -1,0 +1,728 @@
+\documentclass[12pt]{article}
+
+% --- Aquí va SOLO configuración ---
+\usepackage[utf8]{inputenc}
+\usepackage{amsmath}
+\usepackage{graphicx}
+\usepackage{float}
+\usepackage{booktabs}
+\usepackage{hyperref}
+\usepackage{geometry}
+\usepackage{setspace}
+\geometry{letterpaper, margin=1in}
+\setstretch{1.25}
+
+\begin{document}
+
+\begin{titlepage}
+    \centering
+    {\large \textbf{Universidad Autónoma de Nuevo León}\\
+    Maestría en Ciencia de Datos\\
+    Aprendizaje Automático\par}
+    \vspace{3cm}
+    {\Huge \textbf{Análisis de factores para la predicción del stock\par}
+    \vspace{0.5cm}
+    \rule{0.8\textwidth}{0.4pt}
+    \vspace{3cm}
+    {\large }
+    
+    {Liliana Dueñas Barrón}\\
+    \textbf{Matrícula:} 1291120\par
+    \vfill
+    {\large \today}
+\end{titlepage}
+
+
+\begin{abstract}
+Este estudio presenta un análisis integral orientado a comprender los factores que influyen en el nivel de inventario (stock) en un entorno de retail, aplicando técnicas estadísticas y métodos de aprendizaje automático. Se realizaron análisis descriptivos, pruebas de normalidad univariada y multivariada (Shapiro--Wilk, Mahalanobis y Mardia), los cuales revelaron que los datos no siguen una distribución normal, justificando el uso de modelos no paramétricos. Posteriormente, se llevó a cabo una selección de características mediante F-Test, Información Mutua, Random Forest y Lasso, encontrando de manera consistente que el \textit{precio unitario} es la variable con mayor influencia sobre el stock. Para la detección de estructuras subyacentes se aplicó DBSCAN, evaluado mediante los índices de Silhouette, Calinski--Harabasz y Davies--Bouldin, obteniendo agrupamientos válidos y la identificación de \textit{outliers}.
+
+En la etapa de modelado supervisado, se entrenó un \textit{Random Forest Regressor} que alcanzó un desempeño sobresaliente (R$^{2}$ = 0.9995), permitiendo generar predicciones precisas para nuevos escenarios. Finalmente, se desarrolló un diseño factorial $2^{3}$ para evaluar experimentalmente los efectos principales e interacciones de precio, cantidad y venta total sobre el stock predicho. Los resultados del DOE confirmaron que únicamente el precio unitario ejerce un efecto significativo, sin interacción entre factores. El trabajo demuestra que la combinación de análisis estadístico, aprendizaje automático y diseño experimental constituye una herramienta robusta para mejorar la gestión de inventarios en el sector retail y apoyar la toma de decisiones basada en datos.
+\end{abstract}
+
+\section{Introducción}
+El análisis de datos en contextos comerciales, particularmente en entornos de retail, permite comprender el comportamiento de productos, optimizar inventarios y apoyar la toma de decisiones estratégicas. En este estudio se realiza una investigación integral que combina técnicas de preprocesamiento, estadística descriptiva, evaluación de normalidad, selección de características, métodos no supervisados de agrupamiento, modelado predictivo supervisado y diseño de experimentos, con el objetivo de identificar patrones relevantes y construir un modelo capaz de predecir niveles de inventario (stock).
+
+Se emplean métodos clásicos y modernos, incluyendo pruebas estadísticas como Shapiro--Wilk y Mardia, algoritmos como DBSCAN y Random Forest, además de un diseño factorial $2^{3}$ para analizar efectos principales e interacciones. Este enfoque multidimensional permite no sólo modelar adecuadamente el comportamiento del inventario, sino también validar experimentalmente qué variables tienen impacto real sobre él. El análisis aporta evidencia cuantitativa y visual que resulta útil para aplicaciones prácticas, tales como sistemas de soporte a la decisión en gestión de inventarios y planeación de compras.
+
+\section{Planteamiento del problema}
+
+En el entorno de retail, comprender qué factores determinan el nivel adecuado de stock es fundamental para evitar pérdidas por desabasto o sobreinventario. Variables como el precio unitario, la cantidad adquirida y la venta total influyen en las dinámicas comerciales, pero su relación exacta con el inventario no siempre es evidente ni lineal. Además, los datos generados por los sistemas de punto de venta suelen presentar asimetrías, valores atípicos y estructuras complejas que dificultan el uso de modelos tradicionales basados en normalidad.
+
+Ante esta situación, surge la pregunta central del estudio:
+\begin{quote}
+\textbf{¿Qué variables explican de manera significativa el comportamiento del stock y cómo puede modelarse su relación mediante técnicas estadísticas y de machine learning?}
+\end{quote}
+Para responderla, es necesario:
+\begin{enumerate}
+    \item Analizar estadísticamente la distribución y relaciones entre variables.
+    \item Identificar características relevantes mediante múltiples métodos de selección.
+    \item Detectar patrones naturales no supervisados mediante algoritmos de clustering.
+    \item Construir un modelo supervisado robusto para la predicción del stock.
+    \item Validar experimentalmente los efectos principales e interacciones mediante un diseño factorial $2^3$.
+\end{enumerate}
+
+La resolución de este problema contribuye a mejorar las políticas de inventarios y la planeación operativa en un contexto comercial real.
+
+\section{Metodología}
+
+La metodología empleada en este estudio se estructuró en cinco fases integradas, cada una sustentada en herramientas estadísticas y computacionales robustas.
+
+\subsection{Análisis descriptivo y pruebas de normalidad}
+Se utilizaron estadísticos descriptivos (media, mediana, desviación estándar, cuartiles) y visualizaciones (histogramas, boxplots, matriz de correlación) para caracterizar las variables: \textit{precio unitario}, \textit{cantidad de compra}, \textit{venta total} y \textit{stock}.
+
+Posteriormente se aplicaron las siguientes pruebas:
+\begin{itemize}
+    \item \textbf{Shapiro--Wilk}: evaluación de normalidad univariada.
+    \item \textbf{Distancia de Mahalanobis} acompañada de gráfico \textit{QQ-plot} para detección de valores atípicos multivariados.
+    \item \textbf{Prueba multivariada de Mardia} para evaluar la normalidad conjunta mediante asimetría y curtosis multivariada.
+\end{itemize}
+
+Los resultados mostraron que ninguna variable presenta distribución normal y que existe asimetría multivariada significativa, lo cual justifica el uso de modelos no paramétricos.
+
+\subsection{Selección de características}
+
+Se evaluó la relevancia de las variables \textit{precio unitario}, \textit{cantidad de compra} y \textit{venta total} mediante cuatro técnicas:
+\begin{itemize}
+    \item \textbf{F-Test (ANOVA)}
+    \item \textbf{Mutual Information}
+    \item \textbf{Random Forest Importance}
+    \item \textbf{Lasso (L1)}
+\end{itemize}
+
+Los resultados coincidieron en que la variable con mayor contribución al modelo es \textit{precio unitario}, confirmándola como el factor dominante en la predicción del stock.
+
+\subsection{Agrupamiento no supervisado}
+
+Para identificar estructuras naturales en los datos se estandarizaron las variables y se aplicó el algoritmo \textbf{DBSCAN}, debido a que:
+
+\begin{itemize}
+    \item No requiere predefinir el número de grupos.
+    \item Detecta estructuras arbitrarias y presencia de valores atípicos.
+    \item Es adecuado para datos ruidosos y distribuciones no lineales.
+\end{itemize}
+
+La calidad del agrupamiento se evaluó mediante tres índices:
+
+\begin{itemize}
+    \item \textbf{Silhouette}
+    \item \textbf{Calinski--Harabasz}
+    \item \textbf{Davies--Bouldin}
+\end{itemize}
+
+Los valores obtenidos indicaron agrupamientos válidos y una estructura diferenciada en los datos, además de una detección coherente de \textit{outliers}.
+
+\subsection{Modelo de predicción supervisado}
+
+Se construyó un modelo \textbf{Random Forest Regressor}, adecuado para datos no lineales y no normales. El modelo fue entrenado y evaluado mediante las métricas:
+
+\begin{itemize}
+    \item \textbf{MAE}
+    \item \textbf{RMSE}
+    \item \textbf{R\textsuperscript{2}}
+\end{itemize}
+
+El valor obtenido de $R^{2} = 0.9995$ evidenció un ajuste sobresaliente. Además, el análisis de importancia de variables confirmó nuevamente que \textit{precio unitario} es el predictor dominante.  
+El modelo permitió generar predicciones para nuevos escenarios mediante extrapolación controlada.
+
+\subsection{Diseño de Experimentos (DOE 2\textsuperscript{3})}
+
+Finalmente, se aplicó un diseño factorial $2^{3}$ para evaluar los efectos principales de:
+
+\begin{itemize}
+    \item Precio unitario (P)
+    \item Cantidad de compra (C)
+    \item Venta total (V)
+\end{itemize}
+
+Así como las interacciones $P \times C$, $P \times V$, $C \times V$ y $P \times C \times V$.
+
+El DOE se ejecutó utilizando como respuesta el \textit{stock} predicho por el modelo Random Forest, integrando así el enfoque predictivo con una metodología experimental clásica.  
+Los resultados mostraron que únicamente el \textbf{precio unitario} tiene efecto significativo, mientras que las interacciones no aportan variaciones relevantes sobre el nivel de inventario.
+
+\section{Análisis Descriptivo de los Datos}
+
+En esta sección se presenta un análisis estadístico y visual exhaustivo de las variables fundamentales del estudio: \textit{precio unitario}, \textit{cantidad de compra}, \textit{venta total} y \textit{stock}. El objetivo es caracterizar su comportamiento individual, su relación entre sí y evaluar si cumplen los supuestos de normalidad univariada y multivariada, lo cual influye directamente en la elección de modelos posteriores.
+
+\subsection{Estadísticos descriptivos}
+
+Se calcularon estadísticas básicas como la media, mediana, desviación estándar, cuartiles y rango. Los resultados permiten obtener un panorama inicial de la estructura de los datos.
+
+\begin{table}[H]
+\centering
+\begin{tabular}{lccccccc}
+\toprule
+\textbf{Variable} & \textbf{count} & \textbf{mean} & \textbf{std} &
+\textbf{min} & \textbf{max} & \textbf{25\%} & \textbf{50\%} \\
+\midrule
+Precio unitario & 754 & 76.98 & 83.88 & 5.0 & 500 & 25.0 & 45.0 \\
+Venta total     & 754 & 232.03 & 290.87 & 5.0 & 2000 & 50.0 & 130.0 \\
+Cantidad compra & 754 & 2.98 & 1.43 & 1.0 & 5.0 & 2.0 & 3.0 \\
+Stock           & 754 & 267.47 & 130.89 & 30.0 & 485.0 & 140.0 & 224.0 \\
+\bottomrule
+\end{tabular}
+\caption{Estadísticos descriptivos de las variables.}
+\end{table}
+
+A partir de estos valores se observan las siguientes características generales:
+
+\begin{itemize}
+    \item \textbf{Precio unitario}: presenta gran dispersión, valores elevados en percentiles superiores y presencia de \textit{outliers}.
+    \item \textbf{Cantidad compra}: variable discreta entre 1 y 5, con distribución casi uniforme.
+    \item \textbf{Venta total}: distribución altamente asimétrica a la derecha con valores extremos altos.
+    \item \textbf{Stock}: distribución más uniforme, con variaciones estructuradas pero sin valores extremos severos.
+\end{itemize}
+
+Estas características anticipan posibles desafíos para métodos basados en supuestos de normalidad.
+
+\subsection{Distribuciones univariadas}
+
+\subsubsection{Histogramas}
+
+\begin{figure}
+    \centering
+    \includegraphics[width=0.75\linewidth]{Histograma1.png}
+\end{figure}
+
+\begin{figure}
+    \centering
+    \includegraphics[width=0.75\linewidth]{Histograma2y3png - copia.png}
+\end{figure}
+
+El análisis de histogramas permitió identificar:
+
+\begin{itemize}
+    \item \textbf{Precio unitario} y \textbf{venta total}: distribuciones fuertemente sesgadas a la derecha con colas largas.
+    \item \textbf{Cantidad compra}: distribución discreta y equilibrada.
+    \item \textbf{Stock}: variabilidad más estable, sin asimetrías pronunciadas.
+\end{itemize}
+
+\subsubsection{Boxplots}
+
+\begin{figure}
+    \centering
+    \includegraphics[width=0.75\linewidth]{boxplot1.png}
+\end{figure}
+
+\begin{figure}
+    \centering
+    \includegraphics[width=0.75\linewidth]{boxplot2.png}
+\end{figure}
+
+Los boxplots confirmaron:
+
+\begin{itemize}
+    \item Presencia de \textbf{outliers} en precio unitario y venta total.
+    \item Distribución consistente sin valores extremos en cantidad compra.
+    \item Stock con variación moderada y sin extremos severos.
+\end{itemize}
+
+Estos resultados refuerzan la necesidad de utilizar métodos robustos y no paramétricos.
+
+\subsection{Matriz de correlación}
+
+\begin{figure}
+    \centering
+    \includegraphics[width=0.75\linewidth]{matriz.png}
+\end{figure}
+
+La matriz de correlación revela:
+
+\begin{itemize}
+    \item \textbf{Correlación alta} entre \textit{precio unitario} y \textit{venta total} (0.87).
+    \item \textbf{Correlación moderada} entre \textit{cantidad compra} y \textit{venta total} (0.49).
+    \item \textbf{Correlaciones muy bajas} entre \textit{stock} y el resto de las variables ($\approx 0$).
+\end{itemize}
+
+Esto implica que el \textit{stock} no depende linealmente de las otras variables, justificando el uso de modelos no lineales como \textbf{Random Forest}.
+
+\subsection{Pruebas de normalidad univariada (Shapiro--Wilk)}
+
+Para evaluar la normalidad de cada variable se aplicó la prueba de Shapiro--Wilk.  
+Los resultados son:
+
+\begin{table}[H]
+\centering
+\begin{tabular}{lccc}
+\toprule
+\textbf{Variable} & \textbf{Estadístico} & \textbf{p-value} & \textbf{Interpretación} \\
+\midrule
+Precio unitario  & 0.7391 & 0.0000 & No normal \\
+Venta total      & 0.7030 & 0.0000 & No normal \\
+Cantidad compra  & 0.8840 & 0.0000 & No normal \\
+Stock            & 0.9163 & 0.0000 & No normal \\
+\bottomrule
+\end{tabular}
+\caption{Resultados de la prueba de normalidad Shapiro--Wilk.}
+\end{table}
+
+\textbf{Conclusión:} ninguna variable individual sigue una distribución normal.
+
+\subsection{Análisis de Normalidad Multivariada}
+
+La normalidad multivariada es un requisito clave para ciertos métodos estadísticos (MANOVA, análisis factorial clásico, Hotelling T\textsuperscript{2}, etc.). Para evaluarla se realizaron dos pruebas:
+
+\subsection{QQ-Plot de distancias de Mahalanobis}
+\begin{figure}
+    \centering
+    \includegraphics[width=0.75\linewidth]{qqplot.png}
+\end{figure}
+
+El QQ-plot compara las distancias de Mahalanobis observadas con los cuantiles teóricos de una distribución chi-cuadrado.
+
+\subsection{Prueba de Normalidad Multivariada de Mardia}
+
+Resultados obtenidos:
+
+Mardia Skewness: 2708.690 \quad p-value: 0
+
+Mardia Kurtosis: 53.392 \quad p-value: 0
+
+\textbf{Interpretación:}
+\begin{itemize}
+    \item Tanto la asimetría multivariada como la curtosis multivariada presentan p-values = 0.
+    \item Esto indica que los datos violan severamente el supuesto de normalidad multivariada.
+    \item La asimetría es extremadamente alta, lo que coincide con las distribuciones individuales sesgadas.
+    \item La curtosis elevada confirma la presencia de colas pesadas y outliers en el espacio multivariado.
+\end{itemize}
+
+\textbf{Conclusión final:} El conjunto de datos no es normal multivariado, por lo que no deben aplicarse modelos que exijan este supuesto.
+
+\section{SELECCIÓN DE CARACTERÍSTICAS}
+
+La selección de características constituye un paso esencial en la construcción de modelos supervisados, pues determina qué variables aportan información significativa para explicar o predecir la variable objetivo. Elegir correctamente las características no solo mejora el rendimiento del modelo, sino que también reduce complejidad, evita sobreajuste y aumenta la interpretabilidad. En este estudio, el objetivo fue identificar qué variables influyen de manera más directa en el nivel de stock, utilizando tanto métodos estadísticos como enfoques basados en aprendizaje automático.
+
+\subsection{Fundamentos teóricos de la selección de características}
+
+Existen múltiples enfoques para evaluar la relevancia de las variables. Entre los más utilizados se encuentran:
+
+\begin{itemize}
+    \item 1.1. Criterios clásicos de ajuste penalizado: Adjusted R\textsuperscript{2}, AIC y BIC
+    \item 1.2. Importancia de características en modelos de árbol.
+    \item 1.3. Métodos de filtro: F-Test, correlación e información mutua.
+\end{itemize}
+
+Dado que la prueba Shapiro--Wilk y el análisis multivariado de Mardia mostraron que los datos no siguen una distribución normal, emplear métodos no paramétricos como Mutual Information es coherente con la naturaleza de los datos.
+
+\subsection{Consideraciones para determinar variables relevantes}
+
+De acuerdo con los principios estadísticos y de minería de datos, una característica relevante debe:
+
+\begin{itemize}
+    \item presentar dependencia significativa con la variable objetivo (stock);
+    \item no ser altamente colineal con otros predictores;
+    \item aportar interpretabilidad y sentido en el contexto del negocio;
+    \item mostrar consistencia a través de distintos métodos de evaluación.
+\end{itemize}
+
+En un entorno de tienda o retail, estas consideraciones son especialmente importantes, dado que variables como precio unitario, cantidad compra y venta total representan dinámicas comerciales fundamentales.
+
+\subsection{Métodos aplicados en este estudio}
+
+Para garantizar una evaluación sólida e integral, se implementaron cuatro métodos complementarios:
+
+\begin{enumerate}
+    \item F-Test (ANOVA F-value) -- mide relevancia lineal.
+    \item Mutual Information -- mide dependencia no lineal.
+    \item Random Forest Importance -- evalúa contribución mediante reducción de impureza.
+    \item Lasso Regression (L1) -- elimina coeficientes irrelevantes penalizando la complejidad.
+\end{enumerate}
+
+Las tres variables fueron evaluadas:  
+\textbf{precio unitario, cantidad compra y venta total.}
+
+\subsection{Resultados obtenidos}
+
+\begin{figure}
+    \centering
+    \includegraphics[width=0.75\linewidth]{ftest.png}
+\end{figure}
+
+\begin{table}[H]
+\centering
+\begin{tabular}{lcccc}
+\toprule
+\textbf{Variable} & \textbf{F\_test} & \textbf{Mutual\_Info} & \textbf{RandomForest} & \textbf{Lasso} \\
+\midrule
+Precio unitario & 12.4576 & 3.1407 & 0.9963 & 14.6409 \\
+Cantidad compra & 0.0002 & 0.0000 & 0.0003 & 0.0000 \\
+Venta total     & 8.7907 & 1.8137 & 0.0034 & 0.0000 \\
+\bottomrule
+\end{tabular}
+\caption{Comparación de importancia de variables según distintos modelos.}
+\end{table}
+
+\begin{itemize}
+    \item Precio unitario es consistentemente la variable más relevante.
+    \item Venta total muestra importancia moderada en algunos métodos.
+    \item Cantidad compra aporta información prácticamente nula.
+    \item Lasso elimina dos de las variables, destacando únicamente a precio unitario.
+    \item Random Forest asigna casi toda la importancia a precio unitario, lo que refuerza su papel dominante.
+\end{itemize}
+
+\section{ANÁLISIS DE AGRUPAMIENTO}
+
+El análisis de agrupamiento se emplea para identificar estructuras naturales en los datos sin utilizar etiquetas predefinidas. En el contexto de inventario y ventas, el agrupamiento permite descubrir patrones de comportamiento entre productos que comparten características similares en términos de precio, cantidad de compra o nivel de ventas. Esto ayuda a segmentar artículos, comprender dinámicas comerciales y apoyar decisiones de inventario.
+
+En este estudio se utilizaron tres variables: precio unitario, cantidad compra y venta total, y se aplicó el algoritmo DBSCAN, que es especialmente útil cuando los datos presentan ruido, densidades variables y estructuras no esféricas, condiciones que coinciden con la distribución observada en los datos.
+
+\subsection{Justificación del uso de DBSCAN}
+
+DBSCAN ofrece ventajas clave:
+
+\begin{itemize}
+    \item Identifica grupos basados en densidad, no en forma geométrica.
+    \item No requiere especificar el número de grupos previamente (a diferencia de k-means).
+    \item Detecta outliers, asignándolos al clúster -1.
+    \item Maneja bien datos con escalas diferentes cuando se aplica estandarización, como en este caso.
+\end{itemize}
+
+Dado que los datos presentan valores atípicos significativos (especialmente en precio unitario y venta total), y que la forma de las nubes de puntos es heterogénea, DBSCAN resulta ser el algoritmo más adecuado.
+
+\subsection{Resultados del modelo de agrupamiento}
+
+\begin{figure}
+    \centering
+    \includegraphics[width=0.75\linewidth]{DBSCAN.png}
+\end{figure}
+
+La visualización 2D del modelo muestra que DBSCAN identifica un grupo principal de productos de bajo precio y baja venta total, además de varios grupos pequeños de productos de alto valor o comportamiento atípico.
+
+\subsection*{Evaluación mediante métricas internas}
+
+Para validar la calidad del agrupamiento se calcularon tres métricas ampliamente utilizadas:
+
+\subsubsection*{Índice de Silhouette}
+
+El índice de Silhouette mide qué tan cohesivo es cada grupo y qué tan separado está de los demás.  
+Valores cercanos a 1 indican buena separación, mientras que valores cercanos a 0 sugieren traslape.
+
+En este caso, el índice Silhouette fue positivo, lo que indica que los grupos formados presentan cohesión interna aceptable y separación moderada.
+
+\subsubsection*{Índice de Calinski-Harabasz}
+
+Este índice calcula la relación entre dispersión intergrupal e intragrupal.
+
+Un valor alto implica:
+\begin{itemize}
+    \item grupos bien definidos,
+    \item altas diferencias entre grupos,
+    \item cohesión interna fuerte.
+\end{itemize}
+
+El puntaje elevado obtenido respalda la presencia de grupos distinguibles en los datos.
+
+\subsubsection*{Índice de Davies-Bouldin}
+
+El índice Davies–Bouldin cuantifica la similitud promedio entre cada grupo y su grupo más cercano.  
+A diferencia de otras métricas, valores más bajos indican mejor calidad de agrupamiento.
+
+En este análisis, el valor obtenido fue 0.1804, lo que sugiere:
+\begin{itemize}
+    \item grupos compactos,
+    \item baja superposición,
+    \item y una estructura estable y bien definida.
+\end{itemize}
+
+\subsection*{Interpretación de los grupos}
+
+\textbf{Grupo 0 (grupo dominante)}
+\begin{itemize}
+    \item Es el grupo más numeroso.
+    \item Representa productos de bajo precio y venta total moderada-baja.
+    \item Sugiere artículos de rotación estable y comportamiento predecible.
+\end{itemize}
+
+\textbf{Grupos 1, 2, 3 y 4 (minoría)}
+\begin{itemize}
+    \item Conformados por productos muy distintivos:
+    \begin{itemize}
+        \item precios altos,
+        \item ventas elevadas o irregulares,
+        \item patrones particulares de compra.
+    \end{itemize}
+    \item Pueden representar productos premium o nicho.
+\end{itemize}
+
+\textbf{Grupo -1 (ruido)}
+\begin{itemize}
+    \item Incluye productos que no comparten densidad con ningún grupo.
+    \item Corresponden a outliers o artículos con comportamiento extremo.
+    \item Son importantes para análisis de excepciones, inventarios especiales o estrategias diferenciadas.
+\end{itemize}
+
+El análisis de agrupamiento permitió identificar una estructura significativa en los datos comerciales.  
+DBSCAN resultó ser el algoritmo más adecuado dadas las características de los datos, y las métricas internas confirmaron la estabilidad y separación de los grupos identificados. La literatura existente en retail respalda plenamente esta elección.
+
+\section*{MODELO SUPERVISADO DE PRONÓSTICO: RANDOM FOREST REGRESSOR}
+
+Para la etapa de predicción del inventario (stock), se empleó un modelo supervisado de regresión. Entre las distintas alternativas disponibles (Regresión Lineal, SVR, Árboles de Decisión, Gradient Boosting), se seleccionó \textbf{Random Forest Regressor}, debido a su capacidad para capturar relaciones no lineales, su robustez ante ruido y su buen desempeño en datos no paramétricos, como los de este estudio.
+
+Random Forest es un algoritmo basado en ensambles que combina múltiples árboles de decisión entrenados sobre subconjuntos aleatorios de muestras y de variables, reduciendo varianza y mejorando generalización.
+
+\subsection*{Selección de características utilizada para el modelo}
+
+Se utilizaron cuatro métodos para evaluar relevancia de variables:
+
+\begin{table}[H]
+\centering
+\begin{tabular}{lcccc}
+\toprule
+\textbf{Variable} & \textbf{F-test} & \textbf{Mutual Info} & \textbf{Random Forest} & \textbf{Lasso} \\
+\midrule
+Precio unitario & $\uparrow$ más alta & $\uparrow$ más alta & $\uparrow$ más alta & $\uparrow$ más alta \\
+Cantidad compra & mínima & mínima & mínima & mínima \\
+Venta total     & media & baja & segunda & mínima \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection*{Conclusión de selección de características}
+
+\begin{itemize}
+    \item \textbf{Precio unitario} es la variable más influyente según \textit{todos} los métodos.
+    \item \textbf{Venta total} presenta contribución moderada.
+    \item \textbf{Cantidad compra} aporta muy poca información predictiva.
+\end{itemize}
+
+\subsection*{Entrenamiento del modelo Random Forest}
+
+Se entrenó el modelo con validación adecuada y se calcularon tres métricas estándar:
+
+\begin{table}[H]
+\centering
+\begin{tabular}{lc}
+\toprule
+\textbf{Métrica} & \textbf{Valor} \\
+\midrule
+MAE  & 0.7525 \\
+RMSE & 3.0159 \\
+R\textsuperscript{2} & 0.9995 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{itemize}
+    \item MAE = 0.75 unidades de stock \\
+    $\rightarrow$ error promedio extremadamente bajo.
+    \item RMSE = 3.01 \\
+    $\rightarrow$ errores grandes también muy reducidos.
+    \item R\textsuperscript{2} = 0.9995 \\
+    $\rightarrow$ el modelo explica el 99.95\% de la variabilidad del stock.
+\end{itemize}
+
+Estos valores indican un desempeño excelente, típico cuando existe una relación determinística fuerte entre variables (como ocurrió con precio unitario).
+
+\subsection*{Importancia de variables en el modelo}
+
+El modelo entrega los siguientes pesos:
+
+\begin{figure}
+    \centering
+    \includegraphics[width=0.75\linewidth]{RF.png}
+\end{figure}
+
+\begin{table}[H]
+\centering
+\begin{tabular}{lc}
+\toprule
+\textbf{Variable} & \textbf{Importancia} \\
+\midrule
+Precio unitario  & 0.9947 \\
+Venta total      & 0.0051 \\
+Cantidad compra  & 0.0002 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+El modelo confirma que \textbf{precio unitario es el principal determinante del stock} en los datos.
+
+Los gráficos de Random Forest mostraron una relación casi lineal perfecta entre valores reales y predichos.
+
+\subsection*{Validación gráfica \\ Dispersión Reales vs. Predichos}
+
+\begin{figure}
+    \centering
+    \includegraphics[width=0.5\linewidth]{RFRP.png}
+\end{figure}
+
+\begin{itemize}
+    \item Los puntos se alinean exactamente con la línea ideal.
+    \item No se observan desviaciones sistemáticas.
+    \item No hay evidencia visual de sobreajuste.
+\end{itemize}
+
+Esto refuerza la confiabilidad del modelo.
+
+\subsection*{Predicción para nuevos datos (extrapolación)}
+
+Se probaron tres escenarios hipotéticos:
+
+\begin{verbatim}
+Precio unitario  Cantidad compra  Venta total
+10               3                1
+25               4                3
+40               5                5
+\end{verbatim}
+
+Stock estimado = [159, 280, 358]
+
+\begin{itemize}
+    \item A mayores precios y volúmenes de venta → el inventario requerido tiende a aumentar.
+    \item El efecto dominante sigue siendo el precio unitario.
+\end{itemize}
+
+\subsection*{4.6. Conclusiones del modelo supervisado}
+
+\begin{enumerate}
+    \item El modelo Random Forest logró un ajuste casi perfecto.
+    \item La variable determinante en el comportamiento del inventario fue \textbf{precio unitario}.
+    \item Las otras variables aportan información marginal.
+    \item El modelo es robusto ante distribuciones no normales, lo cual es coherente con los resultados de Shapiro–Wilk.
+    \item Se demostró capacidad de extrapolación para estimar inventario bajo escenarios simulados.
+\end{enumerate}
+
+\subsubsection*{Relevancia práctica}
+
+El modelo puede emplearse en un sistema de apoyo a la decisión para estimar inventarios según el precio del producto, facilitando políticas de compras y planeación de stock.
+
+\section*{DISEÑO DE EXPERIMENTOS (DOE 2\textsuperscript{3}) PARA LA PREDICCIÓN DEL STOCK}
+
+El objetivo de esta sección es analizar cómo influyen tres factores clave del negocio (precio unitario (P), cantidad de compra (C) y venta total (V)) sobre el nivel de stock predicho por el modelo Random Forest previamente entrenado. Para ello se construyó un diseño factorial completo 2\textsuperscript{3}, que permite evaluar tanto los efectos principales como las interacciones de segundo y tercer orden entre los factores.
+
+\subsection*{Construcción del diseño factorial 2\textsuperscript{3}}
+
+Se definieron niveles bajo (-1) y alto (+1) de cada factor utilizando los percentiles 10 y 90 de la distribución real del conjunto de datos, preservando así la estructura del negocio. Esto dio lugar a \textbf{8 tratamientos}, mostrados en la Tabla 1.
+
+\begin{table}[H]
+\centering
+\begin{tabular}{lccc}
+\toprule
+\textbf{Tratamiento} & \textbf{Precio unitario} & \textbf{Cantidad compra} & \textbf{Venta total} \\
+\midrule
+T1 & 10.0 & 1.0 & 21.2 \\
+T2 & 200.0 & 1.0 & 21.2 \\
+T3 & 10.0 & 5.0 & 21.2 \\
+T4 & 200.0 & 5.0 & 21.2 \\
+T5 & 10.0 & 1.0 & 600.0 \\
+T6 & 200.0 & 1.0 & 600.0 \\
+T7 & 10.0 & 5.0 & 600.0 \\
+T8 & 200.0 & 5.0 & 600.0 \\
+\bottomrule
+\end{tabular}
+\caption{Diseño de experimentos 2\textsuperscript{3}.}
+\end{table}
+
+Estos tratamientos fueron ingresados al modelo Random Forest para obtener el stock predicho en cada combinación.
+
+\subsection*{Resultados de predicción del modelo}
+
+\begin{table}[H]
+\centering
+\begin{tabular}{lcccc}
+\toprule
+\textbf{Tratamiento} & \textbf{Precio unitario} & \textbf{Cantidad compra} & \textbf{Venta total} & \textbf{Stock predicho} \\
+\midrule
+T1 & 10.0 & 1.0 & 21.2 & 159.0 \\
+T2 & 200.0 & 1.0 & 21.2 & 170.0 \\
+T3 & 10.0 & 5.0 & 21.2 & 159.0 \\
+T4 & 200.0 & 5.0 & 21.2 & 170.0 \\
+T5 & 10.0 & 1.0 & 600.0 & 159.0 \\
+T6 & 200.0 & 1.0 & 600.0 & 170.0 \\
+T7 & 10.0 & 5.0 & 600.0 & 159.0 \\
+T8 & 200.0 & 5.0 & 600.0 & 170.0 \\
+\bottomrule
+\end{tabular}
+\caption{Stock predicho por tratamiento.}
+\end{table}
+
+\subsection*{Cálculo de efectos principales e interacciones}
+
+El cálculo estándar de efectos en un diseño 2\textsuperscript{3} mostró los siguientes valores:
+
+\begin{table}[H]
+\centering
+\begin{tabular}{lc}
+\toprule
+\textbf{Factor / Interacción} & \textbf{Efecto} \\
+\midrule
+P (Precio)   & 5.5 \\
+C (Cantidad) & 0.0 \\
+V (Venta total) & 0.0 \\
+P*C & 0.0 \\
+P*V & 0.0 \\
+C*V & 0.0 \\
+PCV & 0.0 \\
+\bottomrule
+\end{tabular}
+\caption{Efectos estimados del DOE.}
+\end{table}
+
+El único efecto significativo es el precio unitario, mientras que la cantidad y las ventas totales prácticamente no alteran el stock predicho por el modelo.
+
+Esto se visualiza en el Diagrama de Pareto, donde únicamente el factor P supera con claridad a los demás efectos (todos cercanos a cero).
+
+\begin{figure}
+    \centering
+    \includegraphics[width=0.75\linewidth]{DOE.png}
+\end{figure}
+
+\subsection*{Gráficos de efectos principales}
+
+Los gráficos confirman visualmente los resultados de la Tabla 3:
+
+\begin{itemize}
+    \item \textbf{Precio unitario (P):} el stock predicho aumenta claramente cuando el precio pasa de nivel bajo (-1) a nivel alto (+1).
+    \item \textbf{Cantidad de compra (C):} no genera cambios en el stock.
+    \item \textbf{Venta total (V):} tampoco modifica el stock predicho.
+\end{itemize}
+
+\begin{figure}
+    \centering
+    \includegraphics[width=1\linewidth]{DOE2.png}
+\end{figure}
+
+\subsection*{Gráficos de interacciones}
+
+Las interacciones P×C, P×V y C×V muestran líneas prácticamente paralelas, lo cual indica ausencia de interacción entre factores. El comportamiento del stock depende únicamente del precio.
+
+\begin{figure}
+    \centering
+    \includegraphics[width=1\linewidth]{DOE3.png}
+\end{figure}
+
+
+\subsection*{Interpretación conceptual y de negocio}
+
+Los resultados del diseño factorial permiten concluir que:
+
+\begin{itemize}
+    \item El precio unitario es el factor crítico en la predicción del stock.
+    \item Cantidad de compra y venta total no generan cambios perceptibles en el nivel de inventario estimado por el modelo.
+    \item La ausencia de interacciones indica que los efectos de los factores son aditivos y no combinados.
+\end{itemize}
+
+
+\subsection*{Conclusión del DOE}
+
+El diseño factorial 2\textsuperscript{3} confirma de manera experimental lo observado previamente en la sección de selección de características y en la importancia de variables del \textit{Random Forest}:\\
+
+\textbf{El precio unitario es el factor dominante en la predicción del stock}, mientras que cantidad de compra y venta total no aportan información adicional significativa.
+
+Esto valida las conclusiones del análisis supervisado y fortalece la interpretación del modelo como herramienta para estrategias de inventario.
+
+\section*{CONCLUSIONES GENERALES}
+
+El estudio demostró que es posible caracterizar, modelar y predecir de manera precisa el comportamiento del stock mediante un enfoque combinado de estadística y aprendizaje automático. Los principales hallazgos son:
+
+\begin{enumerate}
+    \item Los datos no presentan normalidad univariada ni multivariada, lo que justifica el uso de modelos no paramétricos.
+    \item Precio unitario es la variable más influyente según F-Test, Mutual Information, Random Forest y Lasso.
+    \item El algoritmo no supervisado DBSCAN identificó grupos naturales, revelando un grupo dominante de productos económicos y varios grupos minoritarios asociados a precios altos y comportamientos atípicos.
+    \item El modelo Random Forest Regressor alcanzó un desempeño casi perfecto (R\textsuperscript{2} = 0.9995), confirmando su idoneidad para datos no lineales.
+    \item El DOE 2\textsuperscript{3} corroboró experimentalmente que únicamente el precio unitario afecta el nivel de stock, sin efectos significativos de cantidad ni venta total, ni interacciones entre factores.
+    \item En conjunto, los hallazgos ofrecen una herramienta sólida para la gestión del inventario, permitiendo modelar escenarios hipotéticos y apoyar decisiones estratégicas de negocio.
+\end{enumerate}
+
+Este artículo demuestra cómo la integración de métodos estadísticos y algoritmos de machine learning puede aportar valor en problemas reales del sector retail, mejorando la comprensión del sistema y fortaleciendo la toma de decisiones basada en datos.
+
+\end{document}
