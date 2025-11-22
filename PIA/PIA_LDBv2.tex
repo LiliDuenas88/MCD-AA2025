@@ -20,7 +20,7 @@
     Maestría en Ciencia de Datos\\
     Aprendizaje Automático\par}
     \vspace{3cm}
-    {\Huge \textbf{Análisis de factores para la predicción del stock\par}
+    {\Huge \textbf{Análisis de factores para la predicción del inventario\par}
     \vspace{0.5cm}
     \rule{0.8\textwidth}{0.4pt}
     \vspace{3cm}
@@ -178,12 +178,12 @@ Estas características anticipan posibles desafíos para métodos basados en sup
 
 \subsubsection{Histogramas}
 
-\begin{figure}
+\begin{figure}[H]
     \centering
     \includegraphics[width=0.75\linewidth]{Histograma1.png}
 \end{figure}
 
-\begin{figure}
+\begin{figure}[H]
     \centering
     \includegraphics[width=0.75\linewidth]{Histograma2y3png - copia.png}
 \end{figure}
@@ -198,15 +198,16 @@ El análisis de histogramas permitió identificar:
 
 \subsubsection{Boxplots}
 
-\begin{figure}
+\begin{figure}[H]
     \centering
-    \includegraphics[width=0.75\linewidth]{boxplot1.png}
+    \includegraphics[width=0.5\linewidth]{boxplot1 - copia.png}
 \end{figure}
 
-\begin{figure}
+\begin{figure}[H]
     \centering
-    \includegraphics[width=0.75\linewidth]{boxplot2.png}
+    \includegraphics[width=0.5\linewidth]{boxplot2 - copia.png}
 \end{figure}
+
 
 Los boxplots confirmaron:
 
@@ -220,7 +221,7 @@ Estos resultados refuerzan la necesidad de utilizar métodos robustos y no param
 
 \subsection{Matriz de correlación}
 
-\begin{figure}
+\begin{figure}[H]
     \centering
     \includegraphics[width=0.75\linewidth]{matriz.png}
 \end{figure}
@@ -262,7 +263,7 @@ Stock            & 0.9163 & 0.0000 & No normal \\
 La normalidad multivariada es un requisito clave para ciertos métodos estadísticos (MANOVA, análisis factorial clásico, Hotelling T\textsuperscript{2}, etc.). Para evaluarla se realizaron dos pruebas:
 
 \subsection{QQ-Plot de distancias de Mahalanobis}
-\begin{figure}
+\begin{figure}[H]
     \centering
     \includegraphics[width=0.75\linewidth]{qqplot.png}
 \end{figure}
@@ -332,7 +333,7 @@ Las tres variables fueron evaluadas:
 
 \subsection{Resultados obtenidos}
 
-\begin{figure}
+\begin{figure}[H]
     \centering
     \includegraphics[width=0.75\linewidth]{ftest.png}
 \end{figure}
@@ -380,7 +381,7 @@ Dado que los datos presentan valores atípicos significativos (especialmente en 
 
 \subsection{Resultados del modelo de agrupamiento}
 
-\begin{figure}
+\begin{figure}[H]
     \centering
     \includegraphics[width=0.75\linewidth]{DBSCAN.png}
 \end{figure}
